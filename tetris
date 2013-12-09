@@ -1,0 +1,109 @@
+#!/usr/bin/env ruby
+
+require 'gosu'
+
+# TODO handling peice overlaping the border of the board
+
+class GameWindow < Gosu::Window
+  
+  BLOCK_WIDTH = 5
+  
+  def initialize
+    super 640, 480, false
+    self.caption = "Tetris"
+    
+    @width = 8
+    @height = 20
+    @board = Board.new
+    @peice = Tetron.from_random
+    @position = [0,0]
+    
+  end
+  
+  def update
+    
+    if button_down? Gosu::KbLeft or button_down? Gosu::GpLeft
+      @position[0] += 1
+    elsif  button_down? Gosu::KbRight or button_down? Gosu::GpRight
+      @position[0] -= 1
+    end
+    
+    @position[1] += 1
+    
+  end
+  
+  def button_down(id)
+    if id == Gosu::KbEscape
+      close
+    end
+  end
+  
+  def grid_to_screen(x,y)
+    [x * BLOCK_WIDTH,y * BLOCK_WIDTH]
+  end
+  
+  def draw
+    @board.draw(0,0)
+    @peice.draw(*@position)
+  end
+
+end
+
+class Board < Grid
+  
+end
+
+class Tetron < Grid
+  
+  #create block image
+  
+  def initialize
+    @grid = []
+  end
+  
+  def self.from_random
+    #choose a random peice, create and emit it.
+  end
+  
+  def draw(x,y)
+    # delegate to the block image,
+    # but draw all the peices
+    # at the location given
+                        
+  end
+
+end
+
+class Grid
+  
+  # A grid of true/false values that represents a peice or the board
+  
+  create standard block image
+  
+  def initialize(x,y)
+    
+  end
+  
+  def copy_onto(grid,x,y)
+    
+  end
+  
+  def overlaps_with(grid,x,y)
+    
+  end
+  
+  def draw(screen_x,screen_y)
+    
+    (0..@width).each do |x| 
+      (0..@height).each do |y| 
+        if grid[x][y] 
+          @block.draw(*grid_to_screen(x,y),0)
+        end
+      end
+    end
+  end  
+  
+end
+
+window = GameWindow.new
+window.show
