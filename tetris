@@ -1,6 +1,7 @@
 #!/usr/bin/env ruby
 
 require 'gosu'
+require 'texplay'
 
 # TODO handling peice overlaping the border of the board
 
@@ -11,11 +12,10 @@ class GameWindow < Gosu::Window
   def initialize
     super 640, 480, false
     self.caption = "Tetris"
-    
-    @width = 8
-    @height = 20
+
+
     @board = Board.new
-    @peice = Tetron.from_random
+    @peice = TetronGenerator.from_random
     @position = [0,0]
     
   end
@@ -29,6 +29,8 @@ class GameWindow < Gosu::Window
     end
     
     @position[1] += 1
+
+    sleep 1
     
   end
   
@@ -43,67 +45,109 @@ class GameWindow < Gosu::Window
   end
   
   def draw
+    unless @background
+      @background = TexPlay::create_blank_image($window, GameWindow::BLOCK_WIDTH, GameWindow::BLOCK_WIDTH)
+      @background.circle 44,40,20, :color => :green, :fill => true
+    end
+
+    @background.draw(0,0,1)
     @board.draw(0,0)
     @peice.draw(*@position)
-  end
 
-end
-
-class Board < Grid
-  
-end
-
-class Tetron < Grid
-  
-  #create block image
-  
-  def initialize
-    @grid = []
-  end
-  
-  def self.from_random
-    #choose a random peice, create and emit it.
-  end
-  
-  def draw(x,y)
-    # delegate to the block image,
-    # but draw all the peices
-    # at the location given
-                        
+    flush
   end
 
 end
 
 class Grid
-  
+
   # A grid of true/false values that represents a peice or the board
-  
-  create standard block image
-  
-  def initialize(x,y)
-    
+
+  attr_reader :grid
+
+  def initialize(width,height)
+    @width = width
+    @height = height
+    @grid = []
+    (0..@width - 1).each do |x|
+        @grid[x] = []
+      (0..@height - 1).each do |y|
+        @grid[x][y] = false
+      end
+    end
   end
-  
-  def copy_onto(grid,x,y)
-    
+
+  def merge!(grid,x,y)
+
   end
-  
-  def overlaps_with(grid,x,y)
-    
+
+  def overlaps_with?(grid,x,y)
+
   end
-  
+
+  def self.grid_to_screen(grid_x, grid_y)
+    return [grid_x * GameWindow::BLOCK_WIDTH, grid_y * GameWindow::BLOCK_WIDTH]
+  end
+
   def draw(screen_x,screen_y)
-    
-    (0..@width).each do |x| 
-      (0..@height).each do |y| 
-        if grid[x][y] 
-          @block.draw(*grid_to_screen(x,y),0)
+    unless @block
+      @block = TexPlay::create_blank_image($window, GameWindow::BLOCK_WIDTH, GameWindow::BLOCK_WIDTH)
+      @block.circle 20,20,10, :color => :red, :fill => true
+    end
+
+    (0..@width - 1).each do |x|
+      (0..@height - 1).each do |y|
+        if self.grid[x][y]
+          position_x, position_y = Grid.grid_to_screen(x,y)
+          @block.draw(screen_x + position_x, screen_y + position_y, 1)
         end
       end
     end
-  end  
+  end
+
+end
+
+class Board < Grid
+
+  WIDTH = 8
+  HEIGHT = 20
+
+  def initialize
+    # create the empty grid of predetermined size
+    super(Board::WIDTH,Board::HEIGHT)
+  end
   
 end
 
-window = GameWindow.new
-window.show
+class Tetron < Grid
+
+  def initialize
+    super(2,4)
+  end
+
+end
+
+
+class TetronGenerator
+
+  STRAIGHT = Tetron.new
+  STRAIGHT.grid[0][0] = true
+  STRAIGHT.grid[0][1] = true
+  STRAIGHT.grid[0][2] = true
+  STRAIGHT.grid[0][3] = true
+
+  DOT = Tetron.new
+  DOT.grid[0][0] = true
+
+  TETRONS = [STRAIGHT,DOT]
+
+  def self.from_random
+    TETRONS.sample
+  end
+
+end
+
+$window = GameWindow.new
+$window.show
+
+
