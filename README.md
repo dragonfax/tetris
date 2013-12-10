@@ -6,6 +6,7 @@ Uses ruby and the gosu gem.
 
 The first commit on this repo is the 5 minute progress.
 
+![Screenshot](docs/Tetris.png)
 
 TODO
 ---
