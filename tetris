@@ -8,30 +8,96 @@ require 'texplay'
 class GameWindow < Gosu::Window
   
   BLOCK_WIDTH = 5
-  
+
+  BOARD_WIDTH = 8
+  BOARD_HEIGHT = 20
+
+  WINDOW_WIDTH=BOARD_WIDTH * BLOCK_WIDTH
+  WINDOW_HEIGHT = BOARD_HEIGHT * BLOCK_WIDTH
+
   def initialize
-    super 640, 480, false
+    super WINDOW_WIDTH, WINDOW_HEIGHT, false
     self.caption = "Tetris"
 
 
-    @board = Board.new
+    @board = Board.new(BOARD_WIDTH,BOARD_HEIGHT)
     @peice = TetronGenerator.from_random
     @position = [0,0]
     
   end
-  
-  def update
-    
-    if button_down? Gosu::KbLeft or button_down? Gosu::GpLeft
-      @position[0] += 1
-    elsif  button_down? Gosu::KbRight or button_down? Gosu::GpRight
-      @position[0] -= 1
+
+  LOGIC_DELAY = 0.5 # seconds
+
+  def time_for_logic?
+    now = Time.now
+    if @last_logic_time
+      now - @last_logic_time > LOGIC_DELAY
+    else
+      @last_logic_time = now
     end
-    
+  end
+
+  def logic_update
+    @last_logic_time = Time.now
+
     @position[1] += 1
 
-    sleep 1
+    if @position[1] > BOARD_HEIGHT
+      puts "peice passed off end of board"
+      close
+    end
+
+  end
+
+  INPUT_DELAY = 0.1
+
+  def time_for_input?
+    now = Time.now
+    if @last_input_time
+      now - @last_input_time > INPUT_DELAY
+    else
+      @last_input_time = now
+    end
+  end
+
+  def input_update
+    @last_input_time = Time.now
+
+    if button_down? Gosu::KbLeft or button_down? Gosu::GpLeft
+      @position[0] -= 1
+    elsif  button_down? Gosu::KbRight or button_down? Gosu::GpRight
+      @position[0] += 1
+    end
+
+    @position[0] = 0 if @position[0] < 0
+    @position[0] = 8 if @position[0] > 8
+
+    if @peice.overlaps_with?(@board, *@position)
+      puts "peice collided with other peice"
+      close
+    end
+
+    if button_down? Gosu::KbSpace
+      @board.merge!(@peice, *@position)
+      @peice = TetronGenerator.from_random
+      @position = [0,0]
+    end
+
+    puts "now: #{Time.now} position: #{@position}"
+
+  end
+  
+  def update
+
+    if time_for_input?
+      input_update
+    end
     
+
+    if time_for_logic?
+      logic_update
+    end
+
   end
   
   def button_down(id)
@@ -46,8 +112,8 @@ class GameWindow < Gosu::Window
   
   def draw
     unless @background
-      @background = TexPlay::create_blank_image($window, GameWindow::BLOCK_WIDTH, GameWindow::BLOCK_WIDTH)
-      @background.circle 44,40,20, :color => :green, :fill => true
+      @background = TexPlay::create_blank_image($window, WINDOW_WIDTH, WINDOW_HEIGHT)
+      @background.rect 0,0,WINDOW_WIDTH,WINDOW_HEIGHT, :color => :black, :fill => true
     end
 
     @background.draw(0,0,1)
@@ -63,44 +129,63 @@ class Grid
 
   # A grid of true/false values that represents a peice or the board
 
-  attr_reader :grid
+  attr_reader :grid, :width, :height
 
   def initialize(width,height)
     @width = width
     @height = height
     @grid = []
     (0..@width - 1).each do |x|
-        @grid[x] = []
+      @grid[x] = []
       (0..@height - 1).each do |y|
         @grid[x][y] = false
       end
     end
   end
 
-  def merge!(grid,x,y)
+  def each_cell
+    (0..@width - 1).each do |x|
+      (0..@height - 1).each do |y|
+        yield x, y, self.grid[x][y]
+      end
+    end
+  end
+
+  def merge!(other,origin_x,origin_y)
+    other.each_cell do |other_x, other_y, other_value|
+      self.grid[origin_x + other_x][origin_y + other_y] = true if other_value
+    end
 
   end
 
-  def overlaps_with?(grid,x,y)
-
+  def overlaps_with?(other,origin_x,origin_y)
+    collided = false
+    other.each_cell do |other_x,other_y,other_value|
+      local_x = origin_x + other_x
+      local_y = origin_y + other_y
+      if local_x < self.width and local_y < self.height and other_value and self.grid[local_x][local_y]
+        puts "collision at #{[local_x,local_y]}"
+        collided = true
+      end
+    end
+    collided
   end
 
   def self.grid_to_screen(grid_x, grid_y)
     return [grid_x * GameWindow::BLOCK_WIDTH, grid_y * GameWindow::BLOCK_WIDTH]
   end
 
-  def draw(screen_x,screen_y)
+  def draw(grid_x,grid_y)
     unless @block
+      puts "create block for render"
       @block = TexPlay::create_blank_image($window, GameWindow::BLOCK_WIDTH, GameWindow::BLOCK_WIDTH)
-      @block.circle 20,20,10, :color => :red, :fill => true
+      @block.rect 0,0,GameWindow::BLOCK_WIDTH,GameWindow::BLOCK_WIDTH, :color => :red, :fill => true
     end
 
-    (0..@width - 1).each do |x|
-      (0..@height - 1).each do |y|
-        if self.grid[x][y]
-          position_x, position_y = Grid.grid_to_screen(x,y)
-          @block.draw(screen_x + position_x, screen_y + position_y, 1)
-        end
+    self.each_cell do |cell_x,cell_y,value|
+      if value
+        position_x, position_y = Grid.grid_to_screen(grid_x + cell_x,grid_y + cell_y)
+        @block.draw(position_x, position_y, 1)
       end
     end
   end
@@ -109,14 +194,6 @@ end
 
 class Board < Grid
 
-  WIDTH = 8
-  HEIGHT = 20
-
-  def initialize
-    # create the empty grid of predetermined size
-    super(Board::WIDTH,Board::HEIGHT)
-  end
-  
 end
 
 class Tetron < Grid
@@ -149,5 +226,7 @@ end
 
 $window = GameWindow.new
 $window.show
+
+
 
 
