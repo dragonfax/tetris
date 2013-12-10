@@ -16,3 +16,5 @@ TODO
 * [ ] rules for keeping score and removing rows.
 * [ ] bug where collidng peice doesn't register
 * [ ] rotation of peice
+* [ ] moving down the board faster.
+* [ ] merge the peice when it collides (instead of ending game)
