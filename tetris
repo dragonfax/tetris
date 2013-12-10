@@ -42,9 +42,10 @@ class GameWindow < Gosu::Window
 
     @position[1] += 1
 
-    if @position[1] > BOARD_HEIGHT
+    # TODO if lowest cell of peice is at the bottom on the screen.
+    if @position[1] >= BOARD_HEIGHT
+      apply_peice
       puts "peice passed off end of board"
-      close
     end
 
   end
@@ -72,21 +73,26 @@ class GameWindow < Gosu::Window
     @position[0] = 0 if @position[0] < 0
     @position[0] = 8 if @position[0] > 8
 
+
     if @peice.overlaps_with?(@board, *@position)
       puts "peice collided with other peice"
-      close
+      apply_peice
     end
 
-    if button_down? Gosu::KbSpace
-      @board.merge!(@peice, *@position)
-      @peice = TetronGenerator.from_random
-      @position = [0,0]
+    if button_down? Gosu::KbUp or button_down? Gosu::GpUp
+      @peice.rotate
     end
 
     puts "now: #{Time.now} position: #{@position}"
 
   end
-  
+
+  def apply_peice
+    @board.merge!(@peice, *@position)
+    @peice = TetronGenerator.from_random
+    @position = [0,0]
+  end
+
   def update
 
     if time_for_input?
@@ -101,6 +107,9 @@ class GameWindow < Gosu::Window
   end
   
   def button_down(id)
+    if button_down? Gosu::KbDown or button_down? Gosu::GpDown
+      logic_update
+    end
     if id == Gosu::KbEscape
       close
     end
@@ -188,6 +197,10 @@ class Grid
         @block.draw(position_x, position_y, 1)
       end
     end
+  end
+
+  def rotate
+    # unimplemented
   end
 
 end
