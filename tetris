@@ -7,7 +7,7 @@ require 'texplay'
 
 class GameWindow < Gosu::Window
   
-  BLOCK_WIDTH = 5
+  BLOCK_WIDTH = 20
 
   BOARD_WIDTH = 8
   BOARD_HEIGHT = 20
