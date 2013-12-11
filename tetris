@@ -168,14 +168,14 @@ class Grid
   def each_cell
     (0..@width - 1).each do |x|
       (0..@height - 1).each do |y|
-        yield x, y, self.grid[x][y]
+        yield Coord.new(x, y), self.grid[x][y]
       end
     end
   end
 
   def merge!(other,origin)
-    other.each_cell do |other_x, other_y, other_value|
-      self.grid[origin.x + other_x][origin.y + other_y] = true if other_value
+    other.each_cell do |other_coord, other_value|
+      self.grid[origin.x + other_coord.x][origin.y + other_coord.y] = true if other_value
     end
 
   end
@@ -195,18 +195,17 @@ class Grid
 
   end
 
-  def contains_coord?(x,y)
-    x >= 0 and x < width and y >= 0 and y < height
+  def contains_coord?(coord)
+    coord.x >= 0 and coord.x < width and coord.y >= 0 and coord.y < height
   end
 
   def collides_with?(other,origin)
     # origin is where self is relative to other.
     # so its the positive coordinates on 'other' where 'self' happens to be.
     collided = false
-    self.each_cell do |x,y,value|
-      local_x = origin.x + x
-      local_y = origin.y + y
-      if value and other.contains_coord?(local_x,local_y) and other.grid[local_x][local_y]
+    self.each_cell do |coord,value|
+      local = Coord.new( origin.x + coord.x, origin.y + coord.y)
+      if value and other.contains_coord?(local) and other.grid[local.x][local.y]
         collided = true
         break
       end
@@ -225,9 +224,9 @@ class Grid
       @block.rect 0,0,GameWindow::BLOCK_WIDTH,GameWindow::BLOCK_WIDTH, :color => :red, :fill => true
     end
 
-    self.each_cell do |cell_x,cell_y,value|
+    self.each_cell do |cell_coord,value|
       if value
-        position = Grid.grid_to_screen(Coord.new(grid_position.x + cell_x,grid_position.y + cell_y))
+        position = Grid.grid_to_screen(Coord.new(grid_position.x + cell_coord.x,grid_position.y + cell_coord.y))
         @block.draw(position.x, position.y, 1)
       end
     end
