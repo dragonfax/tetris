@@ -31,6 +31,8 @@ class GameWindow < Gosu::Window
     @board = Board.new(BOARD_WIDTH,BOARD_HEIGHT)
     @peice = TetronGenerator.from_random
     @position = Coord.new(0,0)
+    @font = Gosu::Font.new(self, Gosu::default_font_name, (BLOCK_WIDTH/2).to_i )
+    @score = 0
     
   end
 
@@ -71,8 +73,9 @@ class GameWindow < Gosu::Window
 
     @board.completed_rows.each do |y|
       @board.remove_row!(y)
-      @board.collapse!
+      @score += 100
     end
+    @board.collapse!
 
   end
 
@@ -89,6 +92,13 @@ class GameWindow < Gosu::Window
 
   def input_update
     @last_input_time = Time.now
+
+    if button_down? Gosu::KbUp or button_down? Gosu::GpUp
+      new_peice = @peice.rotate
+      if @peice.within?(@board,@position) and not @peice.collides_with?(@board,@position)
+        @peice = new_peice
+      end
+    end
 
     new_position = @position.dup
 
@@ -152,6 +162,7 @@ class GameWindow < Gosu::Window
     @background.draw(0,0,1)
     @board.draw(Coord.new(0,0))
     @peice.draw(@position)
+    @font.draw(@score.to_s,(BLOCK_WIDTH/2).to_i,(BLOCK_WIDTH/2).to_i, 3, 1.0, 1.0, 0xffffff00)
 
     flush
   end
@@ -185,6 +196,11 @@ class Grid
   end
 
   def merge!(other,origin)
+    # other is merged into self.
+    if not other.within?(self,origin)
+      raise "trying to merge a peice that lies (partially) outside my border"
+    end
+
     other.each_cell do |other_coord, other_value|
       self.grid[origin.x + other_coord.x][origin.y + other_coord.y] = true if other_value
     end
@@ -192,18 +208,17 @@ class Grid
   end
 
   def within?(other,origin)
-    # does it ly within the bounds of this other grid?
+    # does I lie within the bounds of this other grid?
 
     if origin.x <0 or origin.y < 0
       return false
     end
 
-    if origin.x + self.width > other.width or origin.y + self.height > other.height
+    if origin.x + self.width - 1 > other.width - 1 or origin.y + self.height - 1 > other.height - 1
       return false
     end
 
-    return true
-
+    true
   end
 
   def contains_coord?(coord)
@@ -241,10 +256,6 @@ class Grid
         @block.draw(position.x, position.y, 1)
       end
     end
-  end
-
-  def rotate
-    # unimplemented
   end
 
 end
@@ -320,7 +331,20 @@ class Board < Grid;
 
 end
 
-class Tetron < Grid; end
+class Tetron < Grid;
+
+  def rotate
+    rotated = Tetron.new(height,width)
+    each_cell do |coord,value|
+      if value
+        rotated.grid[coord.y][coord.x] = true
+      end
+    end
+
+    rotated
+  end
+
+end
 
 
 class TetronGenerator
