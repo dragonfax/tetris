@@ -14,7 +14,8 @@ TODO
 * [ ] instead of checking input with a delay, record input as quickly as possible
     but simply respond to (act upon) the recorded input with a delay.
     that way button pressed won't be missed.
-* [ ] rules for keeping score and removing rows.
-* [ ] bug where collidng peice doesn't register
-* [ ] rotation of peice
-* [ ] deal with peices of different sizes, and proper collission detection.
+* [ ] rules for keeping score.
+* [ ] rule for removing rows when cmopleted.
+* [ ] rotation of peice.
+* [ ] deal with peices of different sizes.
+* [ ] collission detection bugs.
