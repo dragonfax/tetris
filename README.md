@@ -15,6 +15,5 @@ TODO
     but simply respond to (act upon) the recorded input with a delay.
     that way button pressed won't be missed.
 * [ ] rules for keeping score.
-* [ ] rule for removing rows when cmopleted.
-    and moving all the blocks down to fill the space
 * [ ] rotation of peice.
+* [ ] game needs to end when peices won't fit anymore.

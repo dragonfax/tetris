@@ -17,8 +17,8 @@ class GameWindow < Gosu::Window
   
   BLOCK_WIDTH = 20
 
-  BOARD_WIDTH = 8
-  BOARD_HEIGHT = 20
+  BOARD_WIDTH = 4
+  BOARD_HEIGHT = 8
 
   WINDOW_WIDTH=BOARD_WIDTH * BLOCK_WIDTH
   WINDOW_HEIGHT = BOARD_HEIGHT * BLOCK_WIDTH
@@ -251,7 +251,7 @@ class Board < Grid;
 
       complete = true
       (0..width-1).each do |x|
-        if not self.[x][y]
+        if not self.grid[x][y]
           complete = false
           break
         end
@@ -283,6 +283,25 @@ class Board < Grid;
     end
 
   end
+  
+  private
+  
+  def self.test
+    board = Board.new(2,2)
+    board.grid[0][1] = true
+    board.grid[1][1] = true
+    raise unless board.completed_rows == [1]
+    
+    board.remove_row(1)
+    raise if board.grid[0][1] or board.grid[1][1] 
+    
+    board.each_cell { |coord, value| board.grid[coord.x][coord.y] = true }
+    board.remove_row(1)
+    raise if board.grid[0][0] or board.grid[1][0] or not board.grid[0][1] or not board.grid[1][1]
+    puts "tested"
+  end
+  
+  test
 
 end
 
