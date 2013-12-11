@@ -193,12 +193,18 @@ class Grid
 
   end
 
+  def contains_coord?(x,y)
+    x > 0 and x < width and y > 0 and y < height
+  end
+
   def collides_with?(other,origin)
+    # origin is where self is relative to other.
+    # so its the positive coordinates on 'other' where 'self' happens to be.
     collided = false
-    other.each_cell do |other_x,other_y,other_value|
-      local_x = origin.x + other_x
-      local_y = origin.y + other_y
-      if local_x < self.width and local_y < self.height and other_value and self.grid[local_x][local_y]
+    self.each_cell do |x,y,value|
+      local_x = origin.x + x
+      local_y = origin.y + y
+      if value and other.contains_coord?(local_x,local_y) and other.grid[local_x][local_y]
         puts "collision at #{[local_x,local_y]}"
         collided = true
       end
@@ -231,28 +237,20 @@ class Grid
 
 end
 
-class Board < Grid
+class Board < Grid; end
 
-end
-
-class Tetron < Grid
-
-  def initialize
-    super(2,4)
-  end
-
-end
+class Tetron < Grid; end
 
 
 class TetronGenerator
 
-  STRAIGHT = Tetron.new
+  STRAIGHT = Tetron.new(1,4)
   STRAIGHT.grid[0][0] = true
   STRAIGHT.grid[0][1] = true
   STRAIGHT.grid[0][2] = true
   STRAIGHT.grid[0][3] = true
 
-  DOT = Tetron.new
+  DOT = Tetron.new(1,1)
   DOT.grid[0][0] = true
 
   TETRONS = [STRAIGHT,DOT]
