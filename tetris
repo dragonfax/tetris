@@ -3,8 +3,6 @@
 require 'gosu'
 require 'texplay'
 
-# TODO handling peice overlaping the border of the board
-
 Coord = Struct.new(:x,:y)
 
 class Coord
@@ -50,12 +48,16 @@ class GameWindow < Gosu::Window
   def logic_update
     @last_logic_time = Time.now
 
-    @position.y += 1
+    # try moving down the board
+    new_position = @position.dup
+    new_position.y += 1
 
-    # TODO if lowest cell of peice is at the bottom on the screen.
-    if @position.y >= BOARD_HEIGHT
+    if not @peice.within?(@board, new_position)
       apply_peice
       puts "peice passed off end of board"
+    else
+      # everything is good, just continue moving down the board
+      @position = new_position
     end
 
   end
@@ -74,23 +76,22 @@ class GameWindow < Gosu::Window
   def input_update
     @last_input_time = Time.now
 
+    new_position = @position.dup
+
     if button_down? Gosu::KbLeft or button_down? Gosu::GpLeft
-      @position.x -= 1
+      new_position.x -= 1
     elsif  button_down? Gosu::KbRight or button_down? Gosu::GpRight
-      @position.x += 1
+      new_position.x += 1
     end
 
-    @position.x = 0 if @position.x < 0
-    @position.x = 8 if @position.x > 8
-
-
-    if @peice.collides_with?(@board, @position)
+    if not @peice.within?(@board,new_position)
+      # can't accept this new position, its out of obunds.
+    elsif @peice.collides_with?(@board, new_position)
       puts "peice collided with other peice"
       apply_peice
-    end
-
-    if button_down? Gosu::KbUp or button_down? Gosu::GpUp
-      @peice.rotate
+    else
+      # accept this new position.
+      @position = new_position
     end
 
     puts "now: #{Time.now} position: #{@position}"
@@ -177,14 +178,14 @@ class Grid
 
   end
 
-  def overlaps_with?(other,origin)
+  def within?(other,origin)
     # does it ly within the bounds of this other grid?
 
     if origin.x <0 or origin.y < 0
       return false
     end
 
-    if origin.x + other.width > self.width or origin.y + other.height > self.height
+    if origin.x + self.width > other.width or origin.y + self.height > other.height
       return false
     end
 
