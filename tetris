@@ -64,7 +64,8 @@ class GameWindow < Gosu::Window
     end
 
     @board.completed_rows.each do |y|
-      @board.remove_row(y)
+      @board.remove_row!(y)
+      @board.collapse!
     end
 
   end
@@ -127,7 +128,7 @@ class GameWindow < Gosu::Window
     if button_down? Gosu::KbDown or button_down? Gosu::GpDown
       logic_update
     end
-    if id == Gosu::KbEscape
+    if id == Gosu::KbEscape or id == Gosu::KBQ
       close
     end
   end
@@ -265,19 +266,26 @@ class Board < Grid;
     rows
   end
 
-  def remove_row(y)
+  def remove_row!(y)
 
     # clear the row
     (0..width-1).each do |x|
       self.grid[x][y] = false
     end
-
-    # move everything above it down.
-    (y-1..0).each do |y|
-      (0..width-1).each do |x|
-        if self.grid[x][y]
-          self.grid[x][y] = false
-          self.grid[x][y + 1] = true
+    
+  end
+  
+  def collapse!
+    
+    work_done = true
+    while work_done
+      # keep looping until things stop moving.
+      work_done = false
+      each_cell do |coord, value|
+        if value and contains_coord?(Coord.new(coord.x,coord.y + 1)) and not grid[coord.x][coord.y + 1]
+          grid[coord.x][coord.y] = false
+          grid[coord.x][coord.y + 1] = true
+          work_done = true
         end
       end
     end
@@ -292,11 +300,12 @@ class Board < Grid;
     board.grid[1][1] = true
     raise unless board.completed_rows == [1]
     
-    board.remove_row(1)
+    board.remove_row!(1)
     raise if board.grid[0][1] or board.grid[1][1] 
     
     board.each_cell { |coord, value| board.grid[coord.x][coord.y] = true }
-    board.remove_row(1)
+    board.remove_row!(1)
+    board.collapse!
     raise if board.grid[0][0] or board.grid[1][0] or not board.grid[0][1] or not board.grid[1][1]
     puts "tested"
   end
