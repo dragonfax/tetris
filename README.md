@@ -15,5 +15,4 @@ TODO
     but simply respond to (act upon) the recorded input with a delay.
     that way button pressed won't be missed.
 * [ ] rules for keeping score.
-* [ ] more peices
 * [ ] rotation of peice.

@@ -333,8 +333,32 @@ class TetronGenerator
 
   DOT = Tetron.new(1,1)
   DOT.grid[0][0] = true
+  
+  TRION = Tetron.new(2,3)
+  TRION.grid[0][0] = true
+  TRION.grid[0][1] = true
+  TRION.grid[1][1] = true
+  TRION.grid[0][2] = true
+  
+  LANGLE = Tetron.new(2,3)
+  LANGLE.grid[0][0] = true
+  LANGLE.grid[0][1] = true
+  LANGLE.grid[1][1] = true
+  LANGLE.grid[1][2] = true
+  
+  RANGLE = Tetron.new(2,3)
+  RANGLE.grid[1][0] = true
+  RANGLE.grid[1][1] = true
+  RANGLE.grid[0][1] = true
+  RANGLE.grid[0][2] = true
 
-  TETRONS = [STRAIGHT,DOT]
+  SQUARE = Tetron.new(2,2)
+  SQUARE.grid[0][0] = true
+  SQUARE.grid[0][1] = true
+  SQUARE.grid[1][0] = true
+  SQUARE.grid[1][1] = true
+
+  TETRONS = [STRAIGHT,DOT, TRION, LANGLE, RANGLE, SQUARE]
 
   def self.from_random
     TETRONS.sample
