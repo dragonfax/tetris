@@ -1,0 +1,69 @@
+#!/usr/bin/env ruby
+
+require 'singleton'
+require 'observer'
+
+class Square
+
+  include Singleton
+
+  # just used for drawing other things on the scren.
+
+end
+
+class Peice
+
+  # tracks the current piece, as well (singleton)
+  # can rotate
+  # once per second, moves down the board.
+  #   if it can't, it presses into the board
+  #   if it can't press into the board, thats game over.
+  # listens to Player for movement and rotation commands
+
+  # ? wont' move outisde of the bounds of the board
+
+end
+
+class Board
+
+  include Singleton
+  include Observable
+
+  # tracks the current board (singleton)
+  # when a piece is pressed into it, checks for rows completed.
+  #   and removes them
+
+
+end
+
+class Score
+
+  include Singleton
+
+  # listens to board for row removal from board, and updates itself
+
+end
+
+class Player # (Input)
+
+  include Singleton
+  include Observable
+
+  # if escape is pressed, ends the game
+
+  # emits other commands from the player as events as well.
+
+end
+
+class Screen
+
+  include Singleton
+
+  # manages the window object
+  # knows how to draw the screen.
+  # listens to all objects for state changed.
+  #   when that happens, redraws
+  #   but not faste than a certain speed, though
+
+end
+
