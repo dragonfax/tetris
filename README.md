@@ -16,7 +16,5 @@ TODO
     that way button pressed won't be missed.
 * [ ] rules for keeping score.
 * [ ] rule for removing rows when cmopleted.
-    and moving all the blocks down
+    and moving all the blocks down to fill the space
 * [ ] rotation of peice.
-* [ ] deal with peices of different sizes.
-* [ ] collission detection bugs.

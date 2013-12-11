@@ -55,6 +55,9 @@ class GameWindow < Gosu::Window
     if not @peice.within?(@board, new_position)
       apply_peice
       puts "peice passed off end of board"
+    elsif @peice.collides_with?(@board,new_position)
+      apply_peice
+      puts "peice stopped moving down"
     else
       # everything is good, just continue moving down the board
       @position = new_position
@@ -87,8 +90,7 @@ class GameWindow < Gosu::Window
     if not @peice.within?(@board,new_position)
       # can't accept this new position, its out of obunds.
     elsif @peice.collides_with?(@board, new_position)
-      puts "peice collided with other peice"
-      apply_peice
+      # can't accept this position, another piece is in the way
     else
       # accept this new position.
       @position = new_position
@@ -194,7 +196,7 @@ class Grid
   end
 
   def contains_coord?(x,y)
-    x > 0 and x < width and y > 0 and y < height
+    x >= 0 and x < width and y >= 0 and y < height
   end
 
   def collides_with?(other,origin)
@@ -205,8 +207,8 @@ class Grid
       local_x = origin.x + x
       local_y = origin.y + y
       if value and other.contains_coord?(local_x,local_y) and other.grid[local_x][local_y]
-        puts "collision at #{[local_x,local_y]}"
         collided = true
+        break
       end
     end
     collided
@@ -259,7 +261,24 @@ class TetronGenerator
     TETRONS.sample
   end
 
+  # test
+  raise unless STRAIGHT.collides_with?(STRAIGHT,Coord.new(0,0))
+  raise unless DOT.collides_with?(DOT,Coord.new(0,0))
+  raise unless STRAIGHT.within?(STRAIGHT,Coord.new(0,0))
+  raise unless DOT.within?(DOT,Coord.new(0,0))
+  raise unless STRAIGHT.collides_with?(DOT,Coord.new(0,0))
+  raise unless DOT.collides_with?(STRAIGHT,Coord.new(0,0))
+  raise unless DOT.within?(STRAIGHT, Coord.new(0,0))
+  raise if STRAIGHT.within?(DOT,Coord.new(0,0))
+
+  # grid collision tests
+  test_board = Board.new(4,8)
+  test_board.merge!(DOT,Coord.new(0,0))
+  raise unless DOT.within?(test_board,Coord.new(0,0))
+  raise unless DOT.collides_with?(test_board,Coord.new(0,0))
+
 end
+
 
 $window = GameWindow.new
 $window.show
