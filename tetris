@@ -63,6 +63,10 @@ class GameWindow < Gosu::Window
       @position = new_position
     end
 
+    @board.completed_rows.each do |y|
+      @board.remove_row(y)
+    end
+
   end
 
   INPUT_DELAY = 0.1
@@ -238,7 +242,49 @@ class Grid
 
 end
 
-class Board < Grid; end
+class Board < Grid;
+
+  def completed_rows
+
+    rows = []
+    (0..height-1).each do |y|
+
+      complete = true
+      (0..width-1).each do |x|
+        if not self.[x][y]
+          complete = false
+          break
+        end
+      end
+
+      if complete
+        rows += [y]
+      end
+    end
+
+    rows
+  end
+
+  def remove_row(y)
+
+    # clear the row
+    (0..width-1).each do |x|
+      self.grid[x][y] = false
+    end
+
+    # move everything above it down.
+    (y-1..0).each do |y|
+      (0..width-1).each do |x|
+        if self.grid[x][y]
+          self.grid[x][y] = false
+          self.grid[x][y + 1] = true
+        end
+      end
+    end
+
+  end
+
+end
 
 class Tetron < Grid; end
 
