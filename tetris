@@ -47,6 +47,12 @@ class GameWindow < Gosu::Window
 
   def logic_update
     @last_logic_time = Time.now
+    
+    # is the game over already?
+    if @peice.collides_with?(@board,@position)
+      puts "game ended for lack of space"
+      close
+    end
 
     # try moving down the board
     new_position = @position.dup
@@ -128,7 +134,7 @@ class GameWindow < Gosu::Window
     if button_down? Gosu::KbDown or button_down? Gosu::GpDown
       logic_update
     end
-    if id == Gosu::KbEscape or id == Gosu::KBQ
+    if id == Gosu::KbEscape or id == Gosu::KbQ
       close
     end
   end
