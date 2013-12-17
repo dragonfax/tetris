@@ -15,22 +15,57 @@ class Coord
 
 end
 
+class GosuManager < Gosu::Window
+
+  include Singleton
+  include Unobservable::Support
+
+  attr_event :draw
+  attr_event :update
+  attr_event :button_down
+
+  def initialize(screen)
+    super screen.width, screen.height, false
+    self.caption = "Doubletris"
+  end
+
+  def draw
+    raise_event :draw
+  end
+
+  def update
+    raise_event :update
+  end
+
+  # for immediate input, rather than waiting for a tick of sorts.
+  def button_down(id)
+    raise_event :button_down id
+  end
+
+end
+
 class Game
+
+  include Singleton
 
   BLOCK_WIDTH = 20
 
   def initialize
     @move_clock = MovementClock.new
+    @input_clock = InputClock.new
     @player = Player.new
     @board1 = Board.new
     @board2 = Board.new
     @screen = Screen.new(@player,@board1,@board2)
-    @screen.caption = "Doubletris"
-    @window = GameWindow.new(@screen.width, @screen.height, false)
+    @gosu = GosuManager.new(@screen)
+
+    @gosu.draw.register self, :draw
+
+    @input_clock.input.register self, :input
   end
 
   def start
-    @window.show
+    @gosu.show
   end
 
   def draw
@@ -47,11 +82,21 @@ class Game
     flush
   end
 
+  def input
+    if button_down? Gosu::KbEscape or button_down? Gosu::KbQ
+      close
+    end
+  end
+
+
+
 end
 
 class Screen
 
-  def initialize(player,board1,board2)
+  include Singleton
+
+  def initialize(player,board1,board2,gosu)
     @player = player
     @board1 = board1
     @board2 = board2
@@ -74,6 +119,8 @@ end
 
 class Score
 
+  include Singleton
+
   def initialize(board1,board2)
     @value = 0
     @font = Gosu::Font.new(self, Gosu::default_font_name, (BLOCK_WIDTH/2).to_i )
@@ -91,6 +138,9 @@ class Score
 end
 
 class Player
+
+  include Singleton
+
   def initialize
     @piece1 = PieceGenerator.from_random
     @piece2 = PieceGenerator.from_random
@@ -101,6 +151,8 @@ class Player
     @peice = PieceGenerator.from_random
     @position = Coord.new(0,0)
   end
+
+
 end
 
 class MovementClock
@@ -112,8 +164,9 @@ class MovementClock
 
   attr_event :move
 
-  def initialize
+  def initialize(gosu)
     @last_move_time = Time.now
+    gosu.update.register self, :update
   end
 
   def time_for_move?
@@ -141,6 +194,10 @@ class InputClock
 
   attr_event :input
 
+  def initialize(gosu)
+    gosu.update.register self, :update
+  end
+
   INPUT_DELAY = 0.1
 
   def time_for_input?
@@ -153,26 +210,16 @@ class InputClock
   end
 
   def update
-
     if time_for_input?
       @last_input_time = Time.now
       raise_event :input
     end
-
   end
-
 
   def button_down(id)
     if button_down? Gosu::KbDown or button_down? Gosu::GpDown
       logic_update
     end
-    if id == Gosu::KbEscape or id == Gosu::KbQ
-      close
-    end
-  end
-  
-  def grid_to_screen(x,y)
-    Coord.new(x * BLOCK_WIDTH,y * BLOCK_WIDTH)
   end
   
 
@@ -194,6 +241,10 @@ class Grid
         @grid[x][y] = false
       end
     end
+  end
+
+  def grid_to_screen(x,y)
+    Coord.new(x * BLOCK_WIDTH,y * BLOCK_WIDTH)
   end
 
   def each_cell
@@ -370,6 +421,7 @@ class Piece < Grid;
     @board = board
     move_clock.move.register self, :move
     input_clock.input.register self, :input
+    gosu.button_down.register self, :button_down
   end
 
   def rotate
@@ -438,6 +490,11 @@ class Piece < Grid;
 
   end
 
+  def button_down(id)
+    if id == Gosu::KbDown or id == Gosu::GpDown
+      move
+    end
+  end
 
 end
 
