@@ -29,7 +29,7 @@ class GameWindow < Gosu::Window
 
 
     @board = Board.new(BOARD_WIDTH,BOARD_HEIGHT)
-    @peice = TetronGenerator.from_random
+    @peice = PieceGenerator.from_random
     @position = Coord.new(0,0)
     @font = Gosu::Font.new(self, Gosu::default_font_name, (BLOCK_WIDTH/2).to_i )
     @score = 0
@@ -123,7 +123,7 @@ class GameWindow < Gosu::Window
 
   def apply_peice
     @board.merge!(@peice, @position)
-    @peice = TetronGenerator.from_random
+    @peice = PieceGenerator.from_random
     @position = Coord.new(0,0)
   end
 
@@ -331,10 +331,10 @@ class Board < Grid;
 
 end
 
-class Tetron < Grid;
+class Piece < Grid;
 
   def rotate
-    rotated = Tetron.new(height,width)
+    rotated = Piece.new(height,width)
     each_cell do |coord,value|
       if value
         rotated.grid[coord.y][coord.x] = true
@@ -347,45 +347,45 @@ class Tetron < Grid;
 end
 
 
-class TetronGenerator
+class PieceGenerator
 
-  STRAIGHT = Tetron.new(1,4)
+  STRAIGHT = Piece.new(1,4)
   STRAIGHT.grid[0][0] = true
   STRAIGHT.grid[0][1] = true
   STRAIGHT.grid[0][2] = true
   STRAIGHT.grid[0][3] = true
 
-  DOT = Tetron.new(1,1)
+  DOT = Piece.new(1,1)
   DOT.grid[0][0] = true
   
-  TRION = Tetron.new(2,3)
+  TRION = Piece.new(2,3)
   TRION.grid[0][0] = true
   TRION.grid[0][1] = true
   TRION.grid[1][1] = true
   TRION.grid[0][2] = true
   
-  LANGLE = Tetron.new(2,3)
+  LANGLE = Piece.new(2,3)
   LANGLE.grid[0][0] = true
   LANGLE.grid[0][1] = true
   LANGLE.grid[1][1] = true
   LANGLE.grid[1][2] = true
   
-  RANGLE = Tetron.new(2,3)
+  RANGLE = Piece.new(2,3)
   RANGLE.grid[1][0] = true
   RANGLE.grid[1][1] = true
   RANGLE.grid[0][1] = true
   RANGLE.grid[0][2] = true
 
-  SQUARE = Tetron.new(2,2)
+  SQUARE = Piece.new(2,2)
   SQUARE.grid[0][0] = true
   SQUARE.grid[0][1] = true
   SQUARE.grid[1][0] = true
   SQUARE.grid[1][1] = true
 
-  TETRONS = [STRAIGHT,DOT, TRION, LANGLE, RANGLE, SQUARE]
+  PIECES = [STRAIGHT,DOT, TRION, LANGLE, RANGLE, SQUARE]
 
   def self.from_random
-    TETRONS.sample
+    PIECES.sample
   end
 
   # test
