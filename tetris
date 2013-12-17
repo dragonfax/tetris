@@ -2,6 +2,8 @@
 
 require 'gosu'
 require 'texplay'
+require 'unobservable'
+require 'singleton'
 
 Coord = Struct.new(:x,:y)
 
@@ -13,71 +15,131 @@ class Coord
 
 end
 
-class GameWindow < Gosu::Window
-  
+class Game
+
   BLOCK_WIDTH = 20
 
-  BOARD_WIDTH = 4
-  BOARD_HEIGHT = 8
-
-  WINDOW_WIDTH=BOARD_WIDTH * BLOCK_WIDTH
-  WINDOW_HEIGHT = BOARD_HEIGHT * BLOCK_WIDTH
-
   def initialize
-    super WINDOW_WIDTH, WINDOW_HEIGHT, false
-    self.caption = "Tetris"
+    @move_clock = MovementClock.new
+    @player = Player.new
+    @board1 = Board.new
+    @board2 = Board.new
+    @screen = Screen.new(@player,@board1,@board2)
+    @screen.caption = "Doubletris"
+    @window = GameWindow.new(@screen.width, @screen.height, false)
+  end
 
+  def start
+    @window.show
+  end
 
-    @board = Board.new(BOARD_WIDTH,BOARD_HEIGHT)
+  def draw
+    unless @background
+      @background = TexPlay::create_blank_image($window, WINDOW_WIDTH, WINDOW_HEIGHT)
+      @background.rect 0,0,WINDOW_WIDTH,WINDOW_HEIGHT, :color => :black, :fill => true
+    end
+
+    @background.draw(0,0,1)
+    @screen1.draw(where)
+    @screen2.draw(where)
+    @score.draw
+
+    flush
+  end
+
+end
+
+class Screen
+
+  def initialize(player,board1,board2)
+    @player = player
+    @board1 = board1
+    @board2 = board2
+  end
+
+  def width
+    Board::WIDTH * Game::BLOCK_WIDTH * 2
+  end
+
+  def height
+    Board::HEIGHT * Game::BLOCK_WIDTH
+  end
+
+  def draw(where)
+    @board.draw(where)
+    @peice.draw(where)
+  end
+
+end
+
+class Score
+
+  def initialize(board1,board2)
+    @value = 0
+    @font = Gosu::Font.new(self, Gosu::default_font_name, (BLOCK_WIDTH/2).to_i )
+    board1.row_removed.register self, :scored
+    board2.row_removed.register self, :scored
+  end
+
+  def scored
+    @value += 100
+  end
+
+  def draw
+    @font.draw(@value.to_s,(BLOCK_WIDTH/2).to_i,(BLOCK_WIDTH/2).to_i, 3, 1.0, 1.0, 0xffffff00)
+  end
+end
+
+class Player
+  def initialize
+    @piece1 = PieceGenerator.from_random
+    @piece2 = PieceGenerator.from_random
+  end
+
+  def apply_peice
+    @board.merge!(@peice, @position)
     @peice = PieceGenerator.from_random
     @position = Coord.new(0,0)
-    @font = Gosu::Font.new(self, Gosu::default_font_name, (BLOCK_WIDTH/2).to_i )
-    @score = 0
-    
+  end
+end
+
+class MovementClock
+
+  include Singleton
+  include Unobservable::Support
+
+  MOVE_PERIOD = 0.5 # seconds
+
+  attr_event :move
+
+  def initialize
+    @last_move_time = Time.now
   end
 
-  LOGIC_DELAY = 0.5 # seconds
-
-  def time_for_logic?
+  def time_for_move?
     now = Time.now
-    if @last_logic_time
-      now - @last_logic_time > LOGIC_DELAY
+    if @last_move_time
+      now - @last_move_time > MOVE_PERIOD
     else
-      @last_logic_time = now
+      @last_move_time = now
     end
   end
 
-  def logic_update
-    @last_logic_time = Time.now
-    
-    # is the game over already?
-    if @peice.collides_with?(@board,@position)
-      puts "game ended for lack of space"
-      close
+  def update
+    if time_for_move?
+      @last_logic_time = Time.now
+      raise_event :move
     end
-
-    # try moving down the board
-    new_position = @position.dup
-    new_position.y += 1
-
-    if not @peice.within?(@board, new_position)
-      apply_peice
-      puts "peice passed off end of board"
-    elsif @peice.collides_with?(@board,new_position)
-      apply_peice
-      puts "peice stopped moving down"
-    else
-      # everything is good, just continue moving down the board
-      @position = new_position
-    end
-
-    @board.completed_rows.each do |y|
-      @board.remove_row!(y)
-      @score += 100
-    end
-    @board.collapse!
-
   end
+
+end
+
+class InputClock
+
+  include Singleton
+  include Unobservable::Support
+
+  attr_event :input
 
   INPUT_DELAY = 0.1
 
@@ -90,56 +152,16 @@ class GameWindow < Gosu::Window
     end
   end
 
-  def input_update
-    @last_input_time = Time.now
-
-    if button_down? Gosu::KbUp or button_down? Gosu::GpUp
-      new_peice = @peice.rotate
-      if @peice.within?(@board,@position) and not @peice.collides_with?(@board,@position)
-        @peice = new_peice
-      end
-    end
-
-    new_position = @position.dup
-
-    if button_down? Gosu::KbLeft or button_down? Gosu::GpLeft
-      new_position.x -= 1
-    elsif  button_down? Gosu::KbRight or button_down? Gosu::GpRight
-      new_position.x += 1
-    end
-
-    if not @peice.within?(@board,new_position)
-      # can't accept this new position, its out of obunds.
-    elsif @peice.collides_with?(@board, new_position)
-      # can't accept this position, another piece is in the way
-    else
-      # accept this new position.
-      @position = new_position
-    end
-
-    puts "now: #{Time.now} position: #{@position}"
-
-  end
-
-  def apply_peice
-    @board.merge!(@peice, @position)
-    @peice = PieceGenerator.from_random
-    @position = Coord.new(0,0)
-  end
-
   def update
 
     if time_for_input?
-      input_update
-    end
-    
-
-    if time_for_logic?
-      logic_update
+      @last_input_time = Time.now
+      raise_event :input
     end
 
   end
-  
+
+
   def button_down(id)
     if button_down? Gosu::KbDown or button_down? Gosu::GpDown
       logic_update
@@ -153,19 +175,6 @@ class GameWindow < Gosu::Window
     Coord.new(x * BLOCK_WIDTH,y * BLOCK_WIDTH)
   end
   
-  def draw
-    unless @background
-      @background = TexPlay::create_blank_image($window, WINDOW_WIDTH, WINDOW_HEIGHT)
-      @background.rect 0,0,WINDOW_WIDTH,WINDOW_HEIGHT, :color => :black, :fill => true
-    end
-
-    @background.draw(0,0,1)
-    @board.draw(Coord.new(0,0))
-    @peice.draw(@position)
-    @font.draw(@score.to_s,(BLOCK_WIDTH/2).to_i,(BLOCK_WIDTH/2).to_i, 3, 1.0, 1.0, 0xffffff00)
-
-    flush
-  end
 
 end
 
@@ -262,6 +271,18 @@ end
 
 class Board < Grid;
 
+  include Unobservable::Support
+
+  attr_event :row_removed
+
+  WIDTH = 4
+  HEIGHT = 8
+
+  def initialize(move_clock)
+    move_clock.move.register(self,:move)
+  end
+
+
   def completed_rows
 
     rows = []
@@ -308,7 +329,18 @@ class Board < Grid;
     end
 
   end
-  
+
+
+  def move
+
+    completed_rows.each do |y|
+      remove_row!(y)
+      raise_event :row_removed
+    end
+    collapse!
+
+  end
+
   private
   
   def self.test
@@ -333,6 +365,13 @@ end
 
 class Piece < Grid;
 
+  def initialize(move_clock, board)
+    @position = Coord.new(0,0)
+    @board = board
+    move_clock.move.register self, :move
+    input_clock.input.register self, :input
+  end
+
   def rotate
     rotated = Piece.new(height,width)
     each_cell do |coord,value|
@@ -343,6 +382,62 @@ class Piece < Grid;
 
     rotated
   end
+
+  def move
+
+    # is the game over already?
+    if collides_with?(@board,@position)
+      puts "game ended for lack of space"
+      close
+    end
+
+    # try moving down the board
+    new_position = @position.dup
+    new_position.y += 1
+
+    if not within?(@board, new_position)
+      apply_peice
+      puts "peice passed off end of board"
+    elsif collides_with?(@board,new_position)
+      apply_peice
+      puts "peice stopped moving down"
+    else
+      # everything is good, just continue moving down the board
+      @position = new_position
+    end
+
+  end
+
+  def input
+
+    if button_down? Gosu::KbUp or button_down? Gosu::GpUp
+      new_peice = @peice.rotate
+      if @peice.within?(@board,@position) and not @peice.collides_with?(@board,@position)
+        @peice = new_peice
+      end
+    end
+
+    new_position = @position.dup
+
+    if button_down? Gosu::KbLeft or button_down? Gosu::GpLeft
+      new_position.x -= 1
+    elsif  button_down? Gosu::KbRight or button_down? Gosu::GpRight
+      new_position.x += 1
+    end
+
+    if not @peice.within?(@board,new_position)
+      # can't accept this new position, its out of obunds.
+    elsif @peice.collides_with?(@board, new_position)
+      # can't accept this position, another piece is in the way
+    else
+      # accept this new position.
+      @position = new_position
+    end
+
+    puts "now: #{Time.now} position: #{@position}"
+
+  end
+
 
 end
 
@@ -407,9 +502,5 @@ class PieceGenerator
 end
 
 
-$window = GameWindow.new
-$window.show
-
-
-
+Game.new.start
 
